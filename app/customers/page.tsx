@@ -56,7 +56,8 @@ export default function CustomersPage() {
 
   function handleAddCustomer() {
     if (!formData.name || !formData.phone || !formData.address) {
-      alert("Lütfen tüm alanları doldurun")
+      // TODO: replace with a shared modal if you want global behavior
+      window.alert("Lütfen tüm alanları doldurun")
       return
     }
 
@@ -83,7 +84,8 @@ export default function CustomersPage() {
   function handleEditCustomer() {
     if (!editingCustomer) return
     if (!formData.name || !formData.phone) {
-      alert("Lütfen tüm alanları doldurun")
+      // TODO: replace with a shared modal if you want global behavior
+      window.alert("Lütfen tüm alanları doldurun")
       return
     }
 

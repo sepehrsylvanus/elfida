@@ -10,8 +10,17 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Badge } from "@/components/ui/badge"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 import type { MenuItem, OrderItem, OrderSource, Customer } from "@/lib/db"
-import { getMenu, saveOrder, getNextOrderNumber, getCustomers } from "@/lib/store"
+import { saveOrder, getNextOrderNumber, getCustomers } from "@/lib/store"
 
 export default function OrderEntryPage() {
   const router = useRouter()
@@ -25,9 +34,24 @@ export default function OrderEntryPage() {
   const [customerAddress, setCustomerAddress] = useState("")
   const [manualPrice, setManualPrice] = useState("")
   const [searchTerm, setSearchTerm] = useState("")
+  const [alertMessage, setAlertMessage] = useState<string | null>(null)
 
   useEffect(() => {
-    setMenu(getMenu())
+    const loadMenu = async () => {
+      try {
+        const res = await fetch("/api/menu")
+        if (!res.ok) {
+          console.error("Menü verileri yüklenemedi", await res.text())
+          return
+        }
+        const data: MenuItem[] = await res.json()
+        setMenu(data)
+      } catch (error) {
+        console.error("Menü verileri alınırken hata oluştu", error)
+      }
+    }
+
+    loadMenu()
     setCustomers(getCustomers())
   }, [])
 
@@ -78,18 +102,18 @@ export default function OrderEntryPage() {
 
   const submitOrder = () => {
     if (cart.length === 0) {
-      alert("Sepet boş!")
+      setAlertMessage("Sepet boş!")
       return
     }
 
     if (!customerName || !customerPhone || !customerAddress) {
-      alert("Lütfen müşteri bilgilerini doldurun!")
+      setAlertMessage("Lütfen müşteri bilgilerini doldurun!")
       return
     }
 
     const priceValue = Number.parseFloat(manualPrice)
     if (!manualPrice || Number.isNaN(priceValue) || priceValue <= 0) {
-      alert("Lütfen geçerli bir toplam fiyat girin!")
+      setAlertMessage("Lütfen geçerli bir toplam fiyat girin!")
       return
     }
 
@@ -120,7 +144,7 @@ export default function OrderEntryPage() {
     setManualPrice("")
     setSearchTerm("")
 
-    alert(`Sipariş #${order.orderNumber} başarıyla kaydedildi!`)
+    setAlertMessage(`Sipariş #${order.orderNumber} başarıyla kaydedildi!`)
   }
 
   return (
@@ -153,28 +177,32 @@ export default function OrderEntryPage() {
               </CardHeader>
               <CardContent>
                 {/* Menu Items Grid */}
-                <div className="grid gap-3 sm:grid-cols-2">
-                  {filteredMenu.map((item) => (
-                    <Card
-                      key={item.id}
-                      className="cursor-pointer transition-all hover:shadow-lg"
-                      onClick={() => addToCart(item)}
-                    >
-                      <CardContent className="p-4">
-                        <div className="flex items-start justify-between">
-                          <div className="flex-1">
-                            <h3 className="font-semibold text-gray-900">{item.name}</h3>
-                            <div className="mt-2">
-                              <Badge variant="secondary" className="text-xs">
-                                {item.estimatedStock} porsiyon
-                              </Badge>
+                {filteredMenu.length === 0 ? (
+                  <p className="py-8 text-center text-sm text-gray-500">Hiç ürün bulunamadı (No items found).</p>
+                ) : (
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    {filteredMenu.map((item) => (
+                      <Card
+                        key={item.id}
+                        className="cursor-pointer transition-all hover:shadow-lg"
+                        onClick={() => addToCart(item)}
+                      >
+                        <CardContent className="p-4">
+                          <div className="flex items-start justify-between">
+                            <div className="flex-1">
+                              <h3 className="font-semibold text-gray-900">{item.name}</h3>
+                              <div className="mt-2">
+                                <Badge variant="secondary" className="text-xs">
+                                  {item.estimatedStock} porsiyon
+                                </Badge>
+                              </div>
                             </div>
                           </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                )}
               </CardContent>
             </Card>
           </div>
@@ -310,6 +338,19 @@ export default function OrderEntryPage() {
           </div>
         </div>
       </div>
+
+      {/* Global alert modal for this page */}
+      <AlertDialog open={alertMessage !== null} onOpenChange={(open) => !open && setAlertMessage(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Bilgi</AlertDialogTitle>
+            <AlertDialogDescription>{alertMessage}</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogAction onClick={() => setAlertMessage(null)}>Tamam</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

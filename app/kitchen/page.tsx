@@ -75,7 +75,7 @@ export default function KitchenDashboard() {
   }
 
   const handleDeleteMessage = (messageId: string) => {
-    if (confirm("Bu mesajı silmek istediğinize emin misiniz?")) {
+    if (window.confirm("Bu mesajı silmek istediğinize emin misiniz?")) {
       deleteKitchenMessage(messageId)
       loadData()
     }

@@ -31,10 +31,10 @@ export default function SettingsPage() {
   }, [])
 
   const handleReset = () => {
-    if (confirm("Emin misiniz? Tüm veriler başlangıç haline dönecek.")) {
+    if (window.confirm("Emin misiniz? Tüm veriler başlangıç haline dönecek.")) {
       resetToMockData()
       loadData()
-      alert("Veriler başarıyla sıfırlandı!")
+      window.alert("Veriler başarıyla sıfırlandı!")
     }
   }
 

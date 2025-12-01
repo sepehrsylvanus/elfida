@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import type { Order, MenuItem, Driver } from "@/lib/db"
-import { getOrders, saveOrder, getMenu, getDrivers } from "@/lib/store"
+import { getOrders, saveOrder, getDrivers } from "@/lib/store"
 
 export default function DeliveryDashboard() {
   const router = useRouter()
@@ -27,7 +27,21 @@ export default function DeliveryDashboard() {
   }
 
   useEffect(() => {
-    setMenu(getMenu())
+    const loadMenuFromApi = async () => {
+      try {
+        const res = await fetch("/api/menu")
+        if (!res.ok) {
+          console.error("Menü verileri yüklenemedi", await res.text())
+          return
+        }
+        const data: MenuItem[] = await res.json()
+        setMenu(data)
+      } catch (error) {
+        console.error("Menü verileri alınırken hata oluştu", error)
+      }
+    }
+
+    loadMenuFromApi()
     setDrivers(getDrivers())
     loadOrders()
 
