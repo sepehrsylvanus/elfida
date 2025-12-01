@@ -20,7 +20,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import type { MenuItem, OrderItem, OrderSource, Customer } from "@/lib/db"
-import { saveOrder, getNextOrderNumber, getCustomers } from "@/lib/store"
+import { saveOrder, getNextOrderNumber } from "@/lib/store"
 
 export default function OrderEntryPage() {
   const router = useRouter()
@@ -51,8 +51,22 @@ export default function OrderEntryPage() {
       }
     }
 
+    const loadCustomers = async () => {
+      try {
+        const res = await fetch("/api/customers")
+        if (!res.ok) {
+          console.error("Müşteri verileri yüklenemedi", await res.text())
+          return
+        }
+        const data: Customer[] = await res.json()
+        setCustomers(data)
+      } catch (error) {
+        console.error("Müşteri verileri alınırken hata oluştu", error)
+      }
+    }
+
     loadMenu()
-    setCustomers(getCustomers())
+    loadCustomers()
   }, [])
 
   const filteredMenu = menu.filter(

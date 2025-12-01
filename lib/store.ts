@@ -24,9 +24,6 @@ function initializeStore() {
   if (!localStorage.getItem(STORAGE_KEYS.DRIVERS)) {
     localStorage.setItem(STORAGE_KEYS.DRIVERS, JSON.stringify(MOCK_DRIVERS))
   }
-  if (!localStorage.getItem(STORAGE_KEYS.CUSTOMERS)) {
-    localStorage.setItem(STORAGE_KEYS.CUSTOMERS, JSON.stringify(MOCK_CUSTOMERS))
-  }
   if (!localStorage.getItem(STORAGE_KEYS.ORDER_COUNTER)) {
     localStorage.setItem(STORAGE_KEYS.ORDER_COUNTER, "7")
   }
@@ -117,32 +114,6 @@ export function saveDriver(driver: Driver) {
     drivers.push(driver)
   }
   localStorage.setItem(STORAGE_KEYS.DRIVERS, JSON.stringify(drivers))
-  window.dispatchEvent(new Event("storage"))
-}
-
-// Customers
-export function getCustomers(): Customer[] {
-  if (typeof window === "undefined") return MOCK_CUSTOMERS
-  initializeStore()
-  const data = localStorage.getItem(STORAGE_KEYS.CUSTOMERS)
-  return data ? JSON.parse(data) : []
-}
-
-export function saveCustomer(customer: Customer) {
-  const customers = getCustomers()
-  const index = customers.findIndex((c) => c.id === customer.id)
-  if (index >= 0) {
-    customers[index] = customer
-  } else {
-    customers.push(customer)
-  }
-  localStorage.setItem(STORAGE_KEYS.CUSTOMERS, JSON.stringify(customers))
-  window.dispatchEvent(new Event("storage"))
-}
-
-export function deleteCustomer(customerId: string) {
-  const customers = getCustomers().filter((c) => c.id !== customerId)
-  localStorage.setItem(STORAGE_KEYS.CUSTOMERS, JSON.stringify(customers))
   window.dispatchEvent(new Event("storage"))
 }
 
@@ -245,7 +216,7 @@ export function resetToMockData() {
   localStorage.setItem(STORAGE_KEYS.ORDERS, JSON.stringify(MOCK_ORDERS))
   localStorage.setItem(STORAGE_KEYS.MENU, JSON.stringify(MOCK_MENU))
   localStorage.setItem(STORAGE_KEYS.DRIVERS, JSON.stringify(MOCK_DRIVERS))
-  localStorage.setItem(STORAGE_KEYS.CUSTOMERS, JSON.stringify(MOCK_CUSTOMERS))
+  localStorage.setItem(STORAGE_KEYS.CUSTOMERS, JSON.stringify([]))
   localStorage.setItem(STORAGE_KEYS.ORDER_COUNTER, "7")
   localStorage.setItem(STORAGE_KEYS.KITCHEN_MESSAGES, JSON.stringify(MOCK_KITCHEN_MESSAGES))
   localStorage.setItem(STORAGE_KEYS.KITCHEN_NOTIFICATIONS, JSON.stringify([]))

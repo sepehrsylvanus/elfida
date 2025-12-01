@@ -25,7 +25,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
-import { getCustomers, saveCustomer, deleteCustomer } from "@/lib/store"
 import type { Customer } from "@/lib/db"
 
 export default function CustomersPage() {
@@ -44,44 +43,56 @@ export default function CustomersPage() {
   })
 
   useEffect(() => {
-    loadCustomers()
-    const handleStorageChange = () => loadCustomers()
-    window.addEventListener("storage", handleStorageChange)
-    return () => window.removeEventListener("storage", handleStorageChange)
+    void loadCustomers()
   }, [])
 
-  function loadCustomers() {
-    setCustomers(getCustomers())
+  async function loadCustomers() {
+    try {
+      const res = await fetch("/api/customers")
+      if (!res.ok) {
+        console.error("Müşteri verileri yüklenemedi", await res.text())
+        return
+      }
+      const data: Customer[] = await res.json()
+      setCustomers(data)
+    } catch (error) {
+      console.error("Müşteri verileri alınırken hata oluştu", error)
+    }
   }
 
-  function handleAddCustomer() {
+  async function handleAddCustomer() {
     if (!formData.name || !formData.phone || !formData.address) {
       // TODO: replace with a shared modal if you want global behavior
       window.alert("Lütfen tüm alanları doldurun")
       return
     }
 
-    const newCustomer: Customer = {
-      id: `c${Date.now()}`,
-      name: formData.name,
-      phone: formData.phone,
-      addresses: [
-        {
-          id: `a${Date.now()}`,
-          label: formData.addressLabel,
+    try {
+      const res = await fetch("/api/customers", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: formData.name,
+          phone: formData.phone,
           address: formData.address,
-          location: undefined, // In production, use geocoding API
-        },
-      ],
-    }
+          addressLabel: formData.addressLabel,
+        }),
+      })
 
-    saveCustomer(newCustomer)
-    setIsAddDialogOpen(false)
-    resetForm()
-    loadCustomers()
+      if (!res.ok) {
+        console.error("Müşteri kaydedilemedi", await res.text())
+        return
+      }
+
+      setIsAddDialogOpen(false)
+      resetForm()
+      await loadCustomers()
+    } catch (error) {
+      console.error("Müşteri kaydedilirken hata oluştu", error)
+    }
   }
 
-  function handleEditCustomer() {
+  async function handleEditCustomer() {
     if (!editingCustomer) return
     if (!formData.name || !formData.phone) {
       // TODO: replace with a shared modal if you want global behavior
@@ -89,17 +100,28 @@ export default function CustomersPage() {
       return
     }
 
-    const updatedCustomer: Customer = {
-      ...editingCustomer,
-      name: formData.name,
-      phone: formData.phone,
-    }
+    try {
+      const res = await fetch(`/api/customers/${editingCustomer.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: formData.name,
+          phone: formData.phone,
+        }),
+      })
 
-    saveCustomer(updatedCustomer)
-    setIsEditDialogOpen(false)
-    setEditingCustomer(null)
-    resetForm()
-    loadCustomers()
+      if (!res.ok) {
+        console.error("Müşteri güncellenemedi", await res.text())
+        return
+      }
+
+      setIsEditDialogOpen(false)
+      setEditingCustomer(null)
+      resetForm()
+      await loadCustomers()
+    } catch (error) {
+      console.error("Müşteri güncellenirken hata oluştu", error)
+    }
   }
 
   function openEditDialog(customer: Customer) {
@@ -113,11 +135,19 @@ export default function CustomersPage() {
     setIsEditDialogOpen(true)
   }
 
-  function handleDeleteCustomer() {
-    if (deleteCustomerId) {
-      deleteCustomer(deleteCustomerId)
+  async function handleDeleteCustomer() {
+    if (!deleteCustomerId) return
+
+    try {
+      const res = await fetch(`/api/customers/${deleteCustomerId}`, { method: "DELETE" })
+      if (!res.ok) {
+        console.error("Müşteri silinemedi", await res.text())
+        return
+      }
       setDeleteCustomerId(null)
-      loadCustomers()
+      await loadCustomers()
+    } catch (error) {
+      console.error("Müşteri silinirken hata oluştu", error)
     }
   }
 

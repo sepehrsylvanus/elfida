@@ -1,80 +1,85 @@
-export type OrderStatus = "pending" | "preparing" | "ready" | "delivered" | "cancelled"
-export type OrderType = "dine-in" | "delivery"
-export type OrderSource = "in-house" | "yemeksepeti" | "getir"
+export type OrderStatus =
+  | "pending"
+  | "preparing"
+  | "ready"
+  | "delivered"
+  | "cancelled";
+export type OrderType = "dine-in" | "delivery";
+export type OrderSource = "in-house" | "yemeksepeti" | "getir";
 
 export interface MenuItem {
-  id: string
-  name: string
-  available: boolean
-  estimatedStock: number
+  id: string;
+  name: string;
+  available: boolean;
+  estimatedStock: number;
 }
 
 export interface OrderItem {
-  menuItemId: string
-  quantity: number
-  notes?: string
+  menuItemId: string;
+  quantity: number;
+  notes?: string;
 }
 
 export interface Order {
-  id: string
-  orderNumber: number
-  type: OrderType
-  source: OrderSource
-  status: OrderStatus
-  items: OrderItem[]
-  customerName?: string
-  customerPhone?: string
-  customerAddress?: string
+  id: string;
+  orderNumber: number;
+  type: OrderType;
+  source: OrderSource;
+  status: OrderStatus;
+  items: OrderItem[];
+  customerName?: string;
+  customerPhone?: string;
+  customerAddress?: string;
   addressLocation?: {
-    lat: number
-    lng: number
-  }
-  driverId?: string
-  totalAmount: number
-  createdAt: Date
-  updatedAt: Date
-  readyAt?: Date
-  deliveredAt?: Date
-  notes?: string
+    lat: number;
+    lng: number;
+  };
+  driverId?: string;
+  totalAmount: number;
+  createdAt: Date;
+  updatedAt: Date;
+  readyAt?: Date;
+  deliveredAt?: Date;
+  notes?: string;
 }
 
 export interface Driver {
-  id: string
-  name: string
-  phone: string
-  vehicleType: string
-  active: boolean
-  currentDeliveries: number
+  id: string;
+  name: string;
+  phone: string;
+  vehicleType: string;
+  active: boolean;
+  currentDeliveries: number;
 }
 
 export interface Customer {
-  id: string
-  name: string
-  phone: string
+  id: string;
+  name: string;
+  phone: string;
   addresses: {
-    id: string
-    label: string
-    address: string
+    id: string;
+    label: string;
+    address: string;
     location?: {
-      lat: number
-      lng: number
-    }
-  }[]
+      lat: number;
+      lng: number;
+    };
+  }[];
 }
 
 // Kitchen message types
 export interface KitchenMessage {
-  id: string
-  text: string
-  createdAt: Date
+  id: string;
+  text: string;
+  createdAt: Date;
 }
 
 export interface KitchenNotification {
-  id: string
-  messageId: string
-  text: string
-  sentAt: Date
-  read: boolean
+  id: string;
+  messageId: string;
+  text: string;
+  sentAt: Date;
+  read: boolean;
 }
 
 // Mock data
@@ -217,7 +222,7 @@ export const MOCK_MENU: MenuItem[] = [
     available: true,
     estimatedStock: 40,
   },
-]
+];
 
 export const MOCK_DRIVERS: Driver[] = [
   {
@@ -252,76 +257,9 @@ export const MOCK_DRIVERS: Driver[] = [
     active: false,
     currentDeliveries: 0,
   },
-]
+];
 
-export const MOCK_CUSTOMERS: Customer[] = [
-  {
-    id: "c1",
-    name: "Ayşe Yılmaz",
-    phone: "+90 555 111 2222",
-    addresses: [
-      {
-        id: "a1",
-        label: "Ev",
-        address: "Beyoğlu, İstiklal Caddesi No: 125, Istanbul",
-        location: { lat: 41.0369, lng: 28.9784 },
-      },
-      {
-        id: "a2",
-        label: "İş",
-        address: "Şişli, Halaskargazi Caddesi No: 47, Istanbul",
-        location: { lat: 41.0503, lng: 28.9869 },
-      },
-    ],
-  },
-  {
-    id: "c2",
-    name: "Ahmet Kaya",
-    phone: "+90 555 222 3333",
-    addresses: [
-      {
-        id: "a3",
-        label: "Ev",
-        address: "Kadıköy, Moda Caddesi No: 89, Istanbul",
-        location: { lat: 40.9871, lng: 29.0256 },
-      },
-    ],
-  },
-  {
-    id: "c3",
-    name: "Zeynep Demir",
-    phone: "+90 555 333 4444",
-    addresses: [
-      {
-        id: "a4",
-        label: "Ev",
-        address: "Beşiktaş, Barbaros Bulvarı No: 56, Istanbul",
-        location: { lat: 41.0422, lng: 29.007 },
-      },
-    ],
-  },
-  {
-    id: "c4",
-    name: "Fatma Öztürk",
-    phone: "+90 555 444 5555",
-    addresses: [
-      {
-        id: "a5",
-        label: "Ev",
-        address: "Fatih, Vatan Caddesi No: 234, Istanbul",
-        location: { lat: 41.0082, lng: 28.9497 },
-      },
-      {
-        id: "a6",
-        label: "Ofis",
-        address: "Ataşehir, Atatürk Mahallesi No: 12, Istanbul",
-        location: { lat: 40.9827, lng: 29.1235 },
-      },
-    ],
-  },
-]
-
-let orderCounter = 1
+let orderCounter = 1;
 
 export const MOCK_ORDERS: Order[] = [
   {
@@ -433,7 +371,7 @@ export const MOCK_ORDERS: Order[] = [
     updatedAt: new Date(Date.now() - 2 * 60 * 1000),
     notes: "Masa 12",
   },
-]
+];
 
 export const MOCK_KITCHEN_MESSAGES: KitchenMessage[] = [
   {
@@ -461,8 +399,8 @@ export const MOCK_KITCHEN_MESSAGES: KitchenMessage[] = [
     text: "Temizlik için 10 dakika ara verilecek.",
     createdAt: new Date(),
   },
-]
+];
 
 export function getNextOrderNumber(): number {
-  return orderCounter++
+  return orderCounter++;
 }

@@ -7,22 +7,36 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import type { Driver, Customer } from "@/lib/db"
-import { getDrivers, getCustomers, resetToMockData } from "@/lib/store"
+import { getDrivers, resetToMockData } from "@/lib/store"
 
 export default function SettingsPage() {
   const router = useRouter()
   const [drivers, setDrivers] = useState<Driver[]>([])
   const [customers, setCustomers] = useState<Customer[]>([])
 
-  const loadData = () => {
+  const loadDrivers = () => {
     setDrivers(getDrivers())
-    setCustomers(getCustomers())
+  }
+
+  const loadCustomers = async () => {
+    try {
+      const res = await fetch("/api/customers")
+      if (!res.ok) {
+        console.error("Müşteri verileri yüklenemedi", await res.text())
+        return
+      }
+      const data: Customer[] = await res.json()
+      setCustomers(data)
+    } catch (error) {
+      console.error("Müşteri verileri alınırken hata oluştu", error)
+    }
   }
 
   useEffect(() => {
-    loadData()
+    loadDrivers()
+    void loadCustomers()
 
-    const handleStorage = () => loadData()
+    const handleStorage = () => loadDrivers()
     window.addEventListener("storage", handleStorage)
 
     return () => {
@@ -33,7 +47,8 @@ export default function SettingsPage() {
   const handleReset = () => {
     if (window.confirm("Emin misiniz? Tüm veriler başlangıç haline dönecek.")) {
       resetToMockData()
-      loadData()
+      loadDrivers()
+      void loadCustomers()
       window.alert("Veriler başarıyla sıfırlandı!")
     }
   }
