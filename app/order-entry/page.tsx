@@ -1,15 +1,21 @@
-"use client"
+"use client";
 
-import { useState, useEffect } from "react"
-import { useRouter } from "next/navigation"
-import { Plus, Minus, Trash2, ShoppingCart, Home } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Badge } from "@/components/ui/badge"
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { Plus, Minus, Trash2, ShoppingCart, Home } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -18,155 +24,186 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from "@/components/ui/alert-dialog"
-import type { MenuItem, OrderItem, OrderSource, Customer } from "@/lib/db"
-import { saveOrder, getNextOrderNumber } from "@/lib/store"
+} from "@/components/ui/alert-dialog";
+import type { MenuItem, OrderItem, OrderSource, Customer } from "@/lib/db";
+import { getNextOrderNumber } from "@/lib/store";
 
 export default function OrderEntryPage() {
-  const router = useRouter()
-  const [menu, setMenu] = useState<MenuItem[]>([])
-  const [customers, setCustomers] = useState<Customer[]>([])
-  const [cart, setCart] = useState<OrderItem[]>([])
-  const [orderSource, setOrderSource] = useState<OrderSource>("in-house")
-  const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null)
-  const [customerName, setCustomerName] = useState("")
-  const [customerPhone, setCustomerPhone] = useState("")
-  const [customerAddress, setCustomerAddress] = useState("")
-  const [manualPrice, setManualPrice] = useState("")
-  const [searchTerm, setSearchTerm] = useState("")
-  const [alertMessage, setAlertMessage] = useState<string | null>(null)
+  const router = useRouter();
+  const [menu, setMenu] = useState<MenuItem[]>([]);
+  const [customers, setCustomers] = useState<Customer[]>([]);
+  const [cart, setCart] = useState<OrderItem[]>([]);
+  const [orderSource, setOrderSource] = useState<OrderSource>("in-house");
+  const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(
+    null
+  );
+  const [customerName, setCustomerName] = useState("");
+  const [customerPhone, setCustomerPhone] = useState("");
+  const [customerAddress, setCustomerAddress] = useState("");
+  const [manualPrice, setManualPrice] = useState("");
+  const [searchTerm, setSearchTerm] = useState("");
+  const [alertMessage, setAlertMessage] = useState<string | null>(null);
 
   useEffect(() => {
     const loadMenu = async () => {
       try {
-        const res = await fetch("/api/menu")
+        const res = await fetch("/api/menu");
         if (!res.ok) {
-          console.error("Menü verileri yüklenemedi", await res.text())
-          return
+          console.error("Menü verileri yüklenemedi", await res.text());
+          return;
         }
-        const data: MenuItem[] = await res.json()
-        setMenu(data)
+        const data: MenuItem[] = await res.json();
+        setMenu(data);
       } catch (error) {
-        console.error("Menü verileri alınırken hata oluştu", error)
+        console.error("Menü verileri alınırken hata oluştu", error);
       }
-    }
+    };
 
     const loadCustomers = async () => {
       try {
-        const res = await fetch("/api/customers")
+        const res = await fetch("/api/customers");
         if (!res.ok) {
-          console.error("Müşteri verileri yüklenemedi", await res.text())
-          return
+          console.error("Müşteri verileri yüklenemedi", await res.text());
+          return;
         }
-        const data: Customer[] = await res.json()
-        setCustomers(data)
+        const data: Customer[] = await res.json();
+        setCustomers(data);
       } catch (error) {
-        console.error("Müşteri verileri alınırken hata oluştu", error)
+        console.error("Müşteri verileri alınırken hata oluştu", error);
       }
-    }
+    };
 
-    loadMenu()
-    loadCustomers()
-  }, [])
+    loadMenu();
+    loadCustomers();
+  }, []);
 
   const filteredMenu = menu.filter(
-    (item) => item.available && item.name.toLowerCase().includes(searchTerm.toLowerCase()),
-  )
+    (item) =>
+      item.available &&
+      item.name.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   const addToCart = (menuItem: MenuItem) => {
-    const existingItem = cart.find((item) => item.menuItemId === menuItem.id)
+    const existingItem = cart.find((item) => item.menuItemId === menuItem.id);
     if (existingItem) {
-      setCart(cart.map((item) => (item.menuItemId === menuItem.id ? { ...item, quantity: item.quantity + 1 } : item)))
+      setCart(
+        cart.map((item) =>
+          item.menuItemId === menuItem.id
+            ? { ...item, quantity: item.quantity + 1 }
+            : item
+        )
+      );
     } else {
-      setCart([...cart, { menuItemId: menuItem.id, quantity: 1 }])
+      setCart([...cart, { menuItemId: menuItem.id, quantity: 1 }]);
     }
-  }
+  };
 
   const updateQuantity = (menuItemId: string, delta: number) => {
     setCart(
       cart
         .map((item) => {
           if (item.menuItemId === menuItemId) {
-            const newQuantity = item.quantity + delta
-            return newQuantity > 0 ? { ...item, quantity: newQuantity } : item
+            const newQuantity = item.quantity + delta;
+            return newQuantity > 0 ? { ...item, quantity: newQuantity } : item;
           }
-          return item
+          return item;
         })
-        .filter((item) => item.quantity > 0),
-    )
-  }
+        .filter((item) => item.quantity > 0)
+    );
+  };
 
   const removeFromCart = (menuItemId: string) => {
-    setCart(cart.filter((item) => item.menuItemId !== menuItemId))
-  }
+    setCart(cart.filter((item) => item.menuItemId !== menuItemId));
+  };
 
-  const getMenuItem = (id: string) => menu.find((item) => item.id === id)
+  const getMenuItem = (id: string) => menu.find((item) => item.id === id);
 
   const handleCustomerSelect = (customerId: string) => {
-    const customer = customers.find((c) => c.id === customerId)
+    const customer = customers.find((c) => c.id === customerId);
     if (customer) {
-      setSelectedCustomer(customer)
-      setCustomerName(customer.name)
-      setCustomerPhone(customer.phone)
+      setSelectedCustomer(customer);
+      setCustomerName(customer.name);
+      setCustomerPhone(customer.phone);
       if (customer.addresses.length > 0) {
-        setCustomerAddress(customer.addresses[0].address)
+        setCustomerAddress(customer.addresses[0].address);
       }
     }
-  }
+  };
 
-  const submitOrder = () => {
+  const submitOrder = async () => {
     if (cart.length === 0) {
-      setAlertMessage("Sepet boş!")
-      return
+      setAlertMessage("Sepet boş!");
+      return;
     }
 
     if (!customerName || !customerPhone || !customerAddress) {
-      setAlertMessage("Lütfen müşteri bilgilerini doldurun!")
-      return
+      setAlertMessage("Lütfen müşteri bilgilerini doldurun!");
+      return;
     }
 
-    const priceValue = Number.parseFloat(manualPrice)
+    const priceValue = Number.parseFloat(manualPrice);
     if (!manualPrice || Number.isNaN(priceValue) || priceValue <= 0) {
-      setAlertMessage("Lütfen geçerli bir toplam fiyat girin!")
-      return
+      setAlertMessage("Lütfen geçerli bir toplam fiyat girin!");
+      return;
     }
 
-    const order = {
-      id: `o${Date.now()}`,
-      orderNumber: getNextOrderNumber(),
+    const orderPayload = {
+      // id لازم نیست، Mongo خودش _id تولید می‌کنه
+      orderNumber: getNextOrderNumber(), // فعلاً همون تابع قبلی‌ات
       type: "delivery" as const,
       source: orderSource,
       status: "pending" as const,
       items: cart,
-      customerName: customerName,
-      customerPhone: customerPhone,
-      customerAddress: customerAddress,
-      addressLocation: selectedCustomer?.addresses[0]?.location,
+      customerName,
+      customerPhone,
+      customerAddress,
+      addressLocation: selectedCustomer?.addresses[0]?.location ?? null,
       totalAmount: priceValue,
-      createdAt: new Date(),
-      updatedAt: new Date(),
+    };
+
+    try {
+      const res = await fetch("/api/orders", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(orderPayload),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok || !data.ok) {
+        console.error("Sipariş kaydedilemedi:", data);
+        setAlertMessage(data.message || "Sipariş kaydedilemedi");
+        return;
+      }
+
+      const savedOrder = data.order;
+
+      // Reset form
+      setCart([]);
+      setCustomerName("");
+      setCustomerPhone("");
+      setCustomerAddress("");
+      setSelectedCustomer(null);
+      setManualPrice("");
+      setSearchTerm("");
+
+      setAlertMessage(
+        `Sipariş #${savedOrder.orderNumber} başarıyla kaydedildi!`
+      );
+    } catch (error) {
+      console.error("Sipariş kaydedilirken hata:", error);
+      setAlertMessage("Sunucu hatası, lütfen tekrar deneyin");
     }
-
-    saveOrder(order)
-
-    // Reset form
-    setCart([])
-    setCustomerName("")
-    setCustomerPhone("")
-    setCustomerAddress("")
-    setSelectedCustomer(null)
-    setManualPrice("")
-    setSearchTerm("")
-
-    setAlertMessage(`Sipariş #${order.orderNumber} başarıyla kaydedildi!`)
-  }
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-50 via-white to-red-50 p-4">
       <div className="container mx-auto max-w-7xl">
         <div className="mb-6 flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">Yeni Sipariş Girişi</h1>
+            <h1 className="text-3xl font-bold text-gray-900">
+              Yeni Sipariş Girişi
+            </h1>
             <p className="text-gray-600">Order Entry System</p>
           </div>
           <Button variant="outline" onClick={() => router.push("/")}>
@@ -192,7 +229,9 @@ export default function OrderEntryPage() {
               <CardContent>
                 {/* Menu Items Grid */}
                 {filteredMenu.length === 0 ? (
-                  <p className="py-8 text-center text-sm text-gray-500">Hiç ürün bulunamadı (No items found).</p>
+                  <p className="py-8 text-center text-sm text-gray-500">
+                    Hiç ürün bulunamadı (No items found).
+                  </p>
                 ) : (
                   <div className="grid gap-3 sm:grid-cols-2">
                     {filteredMenu.map((item) => (
@@ -204,7 +243,9 @@ export default function OrderEntryPage() {
                         <CardContent className="p-4">
                           <div className="flex items-start justify-between">
                             <div className="flex-1">
-                              <h3 className="font-semibold text-gray-900">{item.name}</h3>
+                              <h3 className="font-semibold text-gray-900">
+                                {item.name}
+                              </h3>
                               <div className="mt-2">
                                 <Badge variant="secondary" className="text-xs">
                                   {item.estimatedStock} porsiyon
@@ -234,7 +275,10 @@ export default function OrderEntryPage() {
                 {/* Order Source */}
                 <div className="space-y-2">
                   <Label>Sipariş Kaynağı</Label>
-                  <Select value={orderSource} onValueChange={(v) => setOrderSource(v as OrderSource)}>
+                  <Select
+                    value={orderSource}
+                    onValueChange={(v) => setOrderSource(v as OrderSource)}
+                  >
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
@@ -297,31 +341,56 @@ export default function OrderEntryPage() {
                 <div className="border-t pt-4">
                   <h4 className="mb-3 font-semibold">Sipariş Ürünleri:</h4>
                   {cart.length === 0 ? (
-                    <p className="text-center text-sm text-gray-500">Sepet boş</p>
+                    <p className="text-center text-sm text-gray-500">
+                      Sepet boş
+                    </p>
                   ) : (
                     <div className="space-y-2">
                       {cart.map((item) => {
-                        const menuItem = getMenuItem(item.menuItemId)
-                        if (!menuItem) return null
+                        const menuItem = getMenuItem(item.menuItemId);
+                        if (!menuItem) return null;
                         return (
-                          <div key={item.menuItemId} className="flex items-center gap-2 rounded-lg bg-gray-50 p-2">
+                          <div
+                            key={item.menuItemId}
+                            className="flex items-center gap-2 rounded-lg bg-gray-50 p-2"
+                          >
                             <div className="flex-1">
-                              <p className="text-sm font-medium">{menuItem.name}</p>
+                              <p className="text-sm font-medium">
+                                {menuItem.name}
+                              </p>
                             </div>
                             <div className="flex items-center gap-1">
-                              <Button size="sm" variant="outline" onClick={() => updateQuantity(item.menuItemId, -1)}>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() =>
+                                  updateQuantity(item.menuItemId, -1)
+                                }
+                              >
                                 <Minus className="h-3 w-3" />
                               </Button>
-                              <span className="w-8 text-center text-sm font-semibold">{item.quantity}</span>
-                              <Button size="sm" variant="outline" onClick={() => updateQuantity(item.menuItemId, 1)}>
+                              <span className="w-8 text-center text-sm font-semibold">
+                                {item.quantity}
+                              </span>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() =>
+                                  updateQuantity(item.menuItemId, 1)
+                                }
+                              >
                                 <Plus className="h-3 w-3" />
                               </Button>
-                              <Button size="sm" variant="destructive" onClick={() => removeFromCart(item.menuItemId)}>
+                              <Button
+                                size="sm"
+                                variant="destructive"
+                                onClick={() => removeFromCart(item.menuItemId)}
+                              >
                                 <Trash2 className="h-3 w-3" />
                               </Button>
                             </div>
                           </div>
-                        )
+                        );
                       })}
                     </div>
                   )}
@@ -338,12 +407,19 @@ export default function OrderEntryPage() {
                     min="0"
                     step="0.01"
                   />
-                  <p className="text-xs text-gray-500">Sipariş için toplam tutarı manuel olarak girin</p>
+                  <p className="text-xs text-gray-500">
+                    Sipariş için toplam tutarı manuel olarak girin
+                  </p>
                 </div>
 
                 {/* Submit Button */}
                 <div className="border-t pt-4">
-                  <Button className="w-full" size="lg" onClick={submitOrder} disabled={cart.length === 0}>
+                  <Button
+                    className="w-full"
+                    size="lg"
+                    onClick={submitOrder}
+                    disabled={cart.length === 0}
+                  >
                     Siparişi Kaydet
                   </Button>
                 </div>
@@ -354,17 +430,22 @@ export default function OrderEntryPage() {
       </div>
 
       {/* Global alert modal for this page */}
-      <AlertDialog open={alertMessage !== null} onOpenChange={(open) => !open && setAlertMessage(null)}>
+      <AlertDialog
+        open={alertMessage !== null}
+        onOpenChange={(open) => !open && setAlertMessage(null)}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Bilgi</AlertDialogTitle>
             <AlertDialogDescription>{alertMessage}</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogAction onClick={() => setAlertMessage(null)}>Tamam</AlertDialogAction>
+            <AlertDialogAction onClick={() => setAlertMessage(null)}>
+              Tamam
+            </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
     </div>
-  )
+  );
 }
