@@ -46,8 +46,17 @@ export async function POST(req: NextRequest) {
       totalAmount: body.totalAmount,
     });
 
-    // بعد از ذخیره → نوتیف بفرست
-    await notifyNewOrder(order.orderNumber);
+    // Sadece delivery siparişleri için delivery ekibine ntfy bildirimi gönder
+    if (order.type === "delivery") {
+      await notifyNewOrder({
+        orderNumber: order.orderNumber,
+        totalAmount: order.totalAmount,
+        customerName: order.customerName,
+        customerPhone: order.customerPhone,
+        customerAddress: order.customerAddress,
+        items: order.items,
+      });
+    }
 
     return NextResponse.json({ ok: true, order }, { status: 201 });
   } catch (err) {

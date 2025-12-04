@@ -180,6 +180,7 @@ export default function OrderEntryPage() {
 
       // Reset form
       setCart([]);
+      setOrderSource("in-house");
       setCustomerName("");
       setCustomerPhone("");
       setCustomerAddress("");
@@ -294,7 +295,10 @@ export default function OrderEntryPage() {
                 <div className="space-y-3">
                   <div className="space-y-2">
                     <Label>Müşteri Seç (İsteğe Bağlı)</Label>
-                    <Select onValueChange={handleCustomerSelect}>
+                    <Select
+                      value={selectedCustomer?.id ?? ""}
+                      onValueChange={handleCustomerSelect}
+                    >
                       <SelectTrigger>
                         <SelectValue placeholder="Yeni müşteri" />
                       </SelectTrigger>
