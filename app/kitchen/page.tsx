@@ -16,14 +16,15 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import {
-  getKitchenMessages,
-  saveKitchenMessage,
-  deleteKitchenMessage,
-  getKitchenNotifications,
-  sendKitchenNotification,
-  markNotificationAsRead,
-  clearAllNotifications,
-} from "@/lib/store";
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import type { KitchenMessage, KitchenNotification } from "@/lib/db";
 
 export default function KitchenDashboard() {
@@ -31,60 +32,145 @@ export default function KitchenDashboard() {
   const [messages, setMessages] = useState<KitchenMessage[]>([]);
   const [notifications, setNotifications] = useState<KitchenNotification[]>([]);
   const [newMessageText, setNewMessageText] = useState("");
+  const [messageToDelete, setMessageToDelete] = useState<KitchenMessage | null>(
+    null
+  );
 
-  const loadData = () => {
-    setMessages(getKitchenMessages());
-    setNotifications(getKitchenNotifications());
-  };
+  const loadData = async () => {
+    try {
+      const [messagesRes, notificationsRes] = await Promise.all([
+        fetch("/api/kitchen-messages"),
+        fetch("/api/kitchen-notifications"),
+      ]);
 
-  useEffect(() => {
-    loadData();
+      if (messagesRes.ok) {
+        const data = await messagesRes.json();
+        const apiMessages = (data.messages || []) as any[];
+        const mappedMessages: KitchenMessage[] = apiMessages.map((m) => ({
+          ...m,
+          createdAt: new Date(m.createdAt),
+        }));
+        setMessages(mappedMessages);
+      }
 
-    const interval = setInterval(loadData, 3000);
-    const handleStorage = () => loadData();
-    window.addEventListener("storage", handleStorage);
-
-    return () => {
-      clearInterval(interval);
-      window.removeEventListener("storage", handleStorage);
-    };
-  }, []);
-
-  const handleAddMessage = () => {
-    if (!newMessageText.trim()) return;
-
-    const newMessage: KitchenMessage = {
-      id: `km${Date.now()}`,
-      text: newMessageText.trim(),
-      createdAt: new Date(),
-    };
-
-    saveKitchenMessage(newMessage);
-    setNewMessageText("");
-    loadData();
-  };
-
-  const handleSendNotification = (message: KitchenMessage) => {
-    sendKitchenNotification(message.id, message.text);
-    loadData();
-  };
-
-  const handleDeleteMessage = (messageId: string) => {
-    if (window.confirm("Bu mesajı silmek istediğinize emin misiniz?")) {
-      deleteKitchenMessage(messageId);
-      loadData();
+      if (notificationsRes.ok) {
+        const data = await notificationsRes.json();
+        const apiNotifications = (data.notifications || []) as any[];
+        const mappedNotifications: KitchenNotification[] = apiNotifications.map(
+          (n) => ({
+            ...n,
+            sentAt: new Date(n.sentAt),
+          })
+        );
+        setNotifications(mappedNotifications);
+      }
+    } catch (err) {
+      console.error("Mutfak verileri yüklenirken hata oluştu", err);
     }
   };
 
-  const handleMarkAsRead = (notificationId: string) => {
-    markNotificationAsRead(notificationId);
-    loadData();
+  useEffect(() => {
+    void loadData();
+
+    const interval = setInterval(() => {
+      void loadData();
+    }, 3000);
+
+    return () => {
+      clearInterval(interval);
+    };
+  }, []);
+
+  const handleAddMessage = async () => {
+    if (!newMessageText.trim()) return;
+
+    try {
+      const res = await fetch("/api/kitchen-messages", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text: newMessageText.trim() }),
+      });
+      if (!res.ok) {
+        console.error("Mesaj kaydedilemedi", await res.text());
+        return;
+      }
+      setNewMessageText("");
+      await loadData();
+    } catch (err) {
+      console.error("Mesaj eklenirken hata oluştu", err);
+    }
   };
 
-  const handleClearAll = () => {
-    if (confirm("Tüm bildirimleri temizlemek istediğinize emin misiniz?")) {
-      clearAllNotifications();
-      loadData();
+  const handleSendNotification = async (message: KitchenMessage) => {
+    try {
+      const res = await fetch("/api/kitchen-notifications", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ messageId: message.id, text: message.text }),
+      });
+      if (!res.ok) {
+        console.error("Bildirim gönderilemedi", await res.text());
+        return;
+      }
+      await loadData();
+    } catch (err) {
+      console.error("Bildirim gönderilirken hata oluştu", err);
+    }
+  };
+
+  const handleDeleteMessage = (message: KitchenMessage) => {
+    setMessageToDelete(message);
+  };
+
+  const confirmDeleteMessage = async () => {
+    if (!messageToDelete) return;
+
+    try {
+      const res = await fetch(`/api/kitchen-messages/${messageToDelete.id}`, {
+        method: "DELETE",
+      });
+      if (!res.ok) {
+        console.error("Mesaj silinemedi", await res.text());
+        // 404 durumunda da listeyi tazeleyelim (zaten yok demektir)
+      }
+      setMessageToDelete(null);
+      await loadData();
+    } catch (err) {
+      console.error("Mesaj silinirken hata oluştu", err);
+    }
+  };
+
+  const handleMarkAsRead = async (notificationId: string) => {
+    try {
+      const res = await fetch(`/api/kitchen-notifications/${notificationId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ read: true }),
+      });
+      if (!res.ok) {
+        console.error("Bildirim okundu işaretlenemedi", await res.text());
+        return;
+      }
+      await loadData();
+    } catch (err) {
+      console.error("Bildirim güncellenirken hata oluştu", err);
+    }
+  };
+
+  const handleClearAll = async () => {
+    if (!confirm("Tüm bildirimleri temizlemek istediğinize emin misiniz?")) return;
+
+    try {
+      const res = await fetch("/api/kitchen-notifications", {
+        method: "DELETE",
+      });
+      if (!res.ok) {
+        console.error("Bildirimler temizlenemedi", await res.text());
+        return;
+      }
+      await loadData();
+    } catch (err) {
+      console.error("Bildirimler temizlenirken hata oluştu", err);
     }
   };
 
@@ -170,7 +256,7 @@ export default function KitchenDashboard() {
                           <Button
                             size="sm"
                             variant="destructive"
-                            onClick={() => handleDeleteMessage(message.id)}
+                            onClick={() => handleDeleteMessage(message)}
                           >
                             <Trash2 className="h-4 w-4" />
                           </Button>
@@ -254,6 +340,34 @@ export default function KitchenDashboard() {
           </div>
         </div>
       </div>
+
+      {/* Mesaj silme onayı için modal */}
+      <AlertDialog
+        open={messageToDelete !== null}
+        onOpenChange={(open) => {
+          if (!open) setMessageToDelete(null);
+        }}
+     >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Mesajı silmek istediğinize emin misiniz?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {messageToDelete
+                ? `"${messageToDelete.text}" kalıcı olarak silinecek.`
+                : ""}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>İptal</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-red-600 hover:bg-red-700"
+              onClick={confirmDeleteMessage}
+            >
+              Sil
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

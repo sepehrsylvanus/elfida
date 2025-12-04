@@ -26,7 +26,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import type { MenuItem, OrderItem, OrderSource, Customer } from "@/lib/db";
-import { getNextOrderNumber, sendKitchenNotification } from "@/lib/store";
+import { getNextOrderNumber } from "@/lib/store";
 
 declare global {
   type NotificationPermission = "default" | "denied" | "granted";
@@ -182,9 +182,17 @@ export default function OrderEntryPage() {
 
       const savedOrder = data.order;
 
-      // Mutfak sayfasındaki bildirim listesine de yeni siparişi ekle
+      // Mutfak bildirim geçmişine de yeni siparişi ekle (backend)
       const kitchenText = `Yeni sipariş #${savedOrder.orderNumber} - ${orderSource.toUpperCase()} - ${priceValue} ₺`;
-      sendKitchenNotification("auto-order", kitchenText);
+      try {
+        await fetch("/api/kitchen-notifications", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ messageId: "auto-order", text: kitchenText }),
+        });
+      } catch (err) {
+        console.error("Mutfak bildirimi gönderilemedi", err);
+      }
 
       // Reset form
       setCart([]);
