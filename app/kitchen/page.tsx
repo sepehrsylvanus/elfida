@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
-import { Home, Bell, BellOff, Trash2, Plus, Send, MessageSquare } from "lucide-react"
+import { Home, BellOff, Trash2, Plus, Send, MessageSquare } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -18,12 +18,16 @@ import {
 } from "@/lib/store"
 import type { KitchenMessage, KitchenNotification } from "@/lib/db"
 
+declare global {
+  // Basit tip tanımı: tarayıcı ortamında zaten var, Node tarafında kullanılmıyor
+  type NotificationPermission = "default" | "denied" | "granted";
+}
+
 export default function KitchenDashboard() {
   const router = useRouter()
   const [messages, setMessages] = useState<KitchenMessage[]>([])
   const [notifications, setNotifications] = useState<KitchenNotification[]>([])
   const [newMessageText, setNewMessageText] = useState("")
-  const [notificationPermission, setNotificationPermission] = useState<NotificationPermission>("default")
 
   const loadData = () => {
     setMessages(getKitchenMessages())
@@ -32,11 +36,6 @@ export default function KitchenDashboard() {
 
   useEffect(() => {
     loadData()
-
-    // Check notification permission
-    if ("Notification" in window) {
-      setNotificationPermission(Notification.permission)
-    }
 
     const interval = setInterval(loadData, 3000)
     const handleStorage = () => loadData()
@@ -47,13 +46,6 @@ export default function KitchenDashboard() {
       window.removeEventListener("storage", handleStorage)
     }
   }, [])
-
-  const requestNotificationPermission = async () => {
-    if ("Notification" in window) {
-      const permission = await Notification.requestPermission()
-      setNotificationPermission(permission)
-    }
-  }
 
   const handleAddMessage = () => {
     if (!newMessageText.trim()) return
@@ -104,12 +96,6 @@ export default function KitchenDashboard() {
             <p className="text-gray-600">Kitchen Notification System</p>
           </div>
           <div className="flex items-center gap-3">
-            {notificationPermission !== "granted" && (
-              <Button variant="outline" onClick={requestNotificationPermission}>
-                <Bell className="mr-2 h-4 w-4" />
-                Bildirimleri Etkinleştir
-              </Button>
-            )}
             <Button variant="outline" onClick={() => router.push("/")}>
               <Home className="mr-2 h-4 w-4" />
               Ana Sayfa

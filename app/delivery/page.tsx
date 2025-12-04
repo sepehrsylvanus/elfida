@@ -24,26 +24,11 @@ import {
 import type { Order, MenuItem, Driver } from "@/lib/db";
 import { getOrders, saveOrder, getMenu, getDrivers } from "@/lib/store";
 
-const VAPID_PUBLIC_KEY = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!;
-console.log("🚀 ~ VAPID_PUBLIC_KEY:", VAPID_PUBLIC_KEY);
-
-function urlBase64ToUint8Array(base64String: string) {
-  const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
-  const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
-  const rawData = atob(base64);
-  const outputArray = new Uint8Array(rawData.length);
-  for (let i = 0; i < rawData.length; ++i) {
-    outputArray[i] = rawData.charCodeAt(i);
-  }
-  return outputArray;
-}
 export default function DeliveryDashboard() {
   const router = useRouter();
   const [orders, setOrders] = useState<Order[]>([]);
   const [menu, setMenu] = useState<MenuItem[]>([]);
   const [drivers, setDrivers] = useState<Driver[]>([]);
-  const [notificationPermission, setNotificationPermission] =
-    useState<NotificationPermission>("default");
   const seenDeliveryOrderIdsRef = useRef<Set<string> | null>(null);
 
   const loadOrders = () => {
@@ -83,21 +68,6 @@ export default function DeliveryDashboard() {
     setMenu(getMenu());
     setDrivers(getDrivers());
     loadOrders();
-    if ("Notification" in window) {
-      setNotificationPermission(Notification.permission);
-    }
-
-    // 🔹 این قسمت جدید: ثبت Service Worker
-    if ("serviceWorker" in navigator) {
-      navigator.serviceWorker
-        .register("/sw.js")
-        .then((reg) => {
-          console.log("Service worker registered", reg);
-        })
-        .catch((err) => {
-          console.error("Service worker registration failed", err);
-        });
-    }
 
     const interval = setInterval(loadOrders, 5000);
     const handleStorage = () => loadOrders();
@@ -108,80 +78,6 @@ export default function DeliveryDashboard() {
       window.removeEventListener("storage", handleStorage);
     };
   }, []);
-
-  const requestNotificationPermission = async () => {
-    if (!("Notification" in window) || !("serviceWorker" in navigator)) {
-      alert("Bu tarayıcı bildirim özelliğini desteklemiyor");
-      return;
-    }
-
-    try {
-      const permission = await Notification.requestPermission();
-      setNotificationPermission(permission);
-
-      if (permission !== "granted") {
-        alert("Bildirim izni verilmedi");
-        return;
-      }
-
-      // Service worker hazır olana kadar bekle
-      try {
-        const registration = await navigator.serviceWorker.ready;
-
-        const subscription = await registration.pushManager.subscribe({
-          userVisibleOnly: true,
-          applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
-        });
-
-        console.log("SUBSCRIPTION SUCCESS:", subscription);
-      } catch (err) {
-        console.error("SUBSCRIPTION ERROR:", err);
-        alert("Push subscribe hatası: " + (err as any)?.message);
-      }
-
-      // Bu subscription'ı backend'e gönder ve DB'de bu kullanıcı / cihaz için sakla
-      await fetch("/api/save-subscription", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          subscription,
-          // örn: kullanıcı tipi / kurye id'si vs.
-          // courierId: "xxx"
-        }),
-      });
-
-      // İstersen sadece bir info notifikasyonu gösterebilirsin (opsiyonel)
-      new Notification("Bildirimler Aktif", {
-        body: "Artık yeni siparişler için web push alacaksınız",
-        icon: "/notification-bell.png",
-      });
-    } catch (error) {
-      console.error("Bildirim izni alınamadı veya subscribe edilemedi:", error);
-      alert("Bildirimler aktif edilirken bir hata oluştu");
-    }
-  };
-
-  const getNotificationButtonText = () => {
-    switch (notificationPermission) {
-      case "granted":
-        return "Bildirimler Aktif ✓";
-      case "denied":
-        return "Bildirimler Engellenmiş";
-      default:
-        return "Bildirimleri Aç";
-    }
-  };
-
-  const getNotificationButtonVariant = () => {
-    switch (notificationPermission) {
-      case "granted":
-        return "default" as const;
-      case "denied":
-        return "destructive" as const;
-      default:
-        return "outline" as const;
-    }
-  };
 
   const getMenuItem = (id: string) => menu.find((item) => item.id === id);
 
@@ -263,13 +159,6 @@ export default function DeliveryDashboard() {
                 {orders.length}
               </p>
             </div>
-            <Button
-              variant={getNotificationButtonVariant()}
-              onClick={requestNotificationPermission}
-              disabled={notificationPermission === "granted"}
-            >
-              {getNotificationButtonText()}
-            </Button>
             <Button variant="outline" onClick={() => router.push("/")}>
               <Home className="mr-2 h-4 w-4" />
               Ana Sayfa

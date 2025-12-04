@@ -28,6 +28,10 @@ import {
 import type { MenuItem, OrderItem, OrderSource, Customer } from "@/lib/db";
 import { getNextOrderNumber, sendKitchenNotification } from "@/lib/store";
 
+declare global {
+  type NotificationPermission = "default" | "denied" | "granted";
+}
+
 export default function OrderEntryPage() {
   const router = useRouter();
   const [menu, setMenu] = useState<MenuItem[]>([]);
