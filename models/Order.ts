@@ -38,6 +38,9 @@ export interface IOrder extends mongoose.Document {
   customerAddress: string;
   addressLocation?: ILocation;
   totalAmount: number;
+  driverId?: string;
+  readyAt?: Date;
+  deliveredAt?: Date;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -62,6 +65,9 @@ const orderSchema = new Schema<IOrder>(
     customerAddress: { type: String, required: true },
     addressLocation: { type: locationSchema, required: false },
     totalAmount: { type: Number, required: true },
+    driverId: { type: String, required: false },
+    readyAt: { type: Date, required: false },
+    deliveredAt: { type: Date, required: false },
   },
   { timestamps: true } // createdAt / updatedAt اتوماتیک
 );

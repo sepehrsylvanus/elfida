@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import {
   Home,
@@ -14,92 +14,101 @@ import {
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import type { Order, MenuItem, Driver } from "@/lib/db";
-import { getOrders, saveOrder, getMenu, getDrivers } from "@/lib/store";
+import type { Order, MenuItem } from "@/lib/db";
 
 export default function DeliveryDashboard() {
   const router = useRouter();
   const [orders, setOrders] = useState<Order[]>([]);
   const [menu, setMenu] = useState<MenuItem[]>([]);
-  const [drivers, setDrivers] = useState<Driver[]>([]);
-  const seenDeliveryOrderIdsRef = useRef<Set<string> | null>(null);
 
-  const loadOrders = () => {
-    const allOrders = getOrders();
-    const readyOrders = allOrders.filter(
-      (order) => order.type === "delivery" && order.status === "ready"
-    );
-    readyOrders.sort((a, b) => {
-      if (!a.readyAt || !b.readyAt) return 0;
-      return a.readyAt.getTime() - b.readyAt.getTime();
-    });
-    setOrders(readyOrders);
+  const loadOrders = async () => {
+    try {
+      const res = await fetch("/api/orders?scope=delivery-dashboard");
+      if (!res.ok) {
+        console.error("Siparişler yüklenemedi", await res.text());
+        return;
+      }
+      const data = await res.json();
+      if (!data.ok) {
+        console.error("Siparişler yüklenemedi", data);
+        return;
+      }
 
-    // Detect newly created delivery orders and show a browser notification
-    const deliveryOrders = allOrders.filter(
-      (order) => order.type === "delivery"
-    );
-    if (!seenDeliveryOrderIdsRef.current) {
-      // First load: just register existing orders without notifying
-      seenDeliveryOrderIdsRef.current = new Set(
-        deliveryOrders.map((o) => o.id)
-      );
-      return;
+      const apiOrders = (data.orders || []) as any[];
+      const mapped: Order[] = apiOrders.map((o) => ({
+        ...o,
+        createdAt: new Date(o.createdAt),
+        updatedAt: new Date(o.updatedAt),
+        readyAt: o.readyAt ? new Date(o.readyAt) : undefined,
+        deliveredAt: o.deliveredAt ? new Date(o.deliveredAt) : undefined,
+      }));
+
+      setOrders(mapped);
+    } catch (err) {
+      console.error("Siparişler alınırken hata oluştu", err);
     }
+  };
 
-    const seenIds = seenDeliveryOrderIdsRef.current;
-    const newDeliveryOrders = deliveryOrders.filter(
-      (order) => !seenIds.has(order.id)
-    );
-
-    if (newDeliveryOrders.length > 0) {
-      newDeliveryOrders.forEach((order) => seenIds.add(order.id));
+  const loadMenu = async () => {
+    try {
+      const res = await fetch("/api/menu");
+      if (!res.ok) return;
+      const data: MenuItem[] = await res.json();
+      setMenu(data);
+    } catch (err) {
+      console.error("Menü alınırken hata oluştu", err);
     }
   };
 
   useEffect(() => {
-    setMenu(getMenu());
-    setDrivers(getDrivers());
-    loadOrders();
+    void loadMenu();
+    void loadOrders();
 
-    const interval = setInterval(loadOrders, 5000);
-    const handleStorage = () => loadOrders();
-    window.addEventListener("storage", handleStorage);
+    const interval = setInterval(() => {
+      void loadOrders();
+    }, 5000);
 
     return () => {
       clearInterval(interval);
-      window.removeEventListener("storage", handleStorage);
     };
   }, []);
 
   const getMenuItem = (id: string) => menu.find((item) => item.id === id);
 
-  const assignDriver = (order: Order, driverId: string) => {
-    const updatedOrder = {
-      ...order,
-      driverId,
-      updatedAt: new Date(),
-    };
-    saveOrder(updatedOrder);
-    loadOrders();
+  const markAsDelivered = async (order: Order) => {
+    try {
+      const res = await fetch(`/api/orders/${order.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "delivered", orderNumber: order.orderNumber }),
+      });
+      if (!res.ok) {
+        console.error("Sipariş teslim edilemedi", await res.text());
+        return;
+      }
+      // Son durum daima veritabanından gelsin
+      await loadOrders();
+    } catch (err) {
+      console.error("Sipariş teslim edilirken hata oluştu", err);
+    }
   };
 
-  const markAsDelivered = (order: Order) => {
-    const updatedOrder = {
-      ...order,
-      status: "delivered" as const,
-      deliveredAt: new Date(),
-      updatedAt: new Date(),
-    };
-    saveOrder(updatedOrder);
-    loadOrders();
+  const clearAllOrders = async () => {
+    if (!orders.length) return;
+
+    try {
+      const res = await fetch("/api/orders", {
+        method: "DELETE",
+      });
+      if (!res.ok) {
+        console.error("Tüm siparişler silinemedi", await res.text());
+        return;
+      }
+      // Verileri tekrar veritabanından oku (muhtemelen boş olacak)
+      await loadOrders();
+    } catch (err) {
+      console.error("Tüm siparişler temizlenirken hata oluştu", err);
+    }
   };
 
   const getTimeSinceReady = (readyAt?: Date) => {
@@ -139,11 +148,6 @@ export default function DeliveryDashboard() {
     }
   };
 
-  const getDriver = (driverId?: string) => {
-    if (!driverId) return null;
-    return drivers.find((d) => d.id === driverId);
-  };
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-cyan-50 to-teal-50 p-4">
       <div className="container mx-auto max-w-7xl">
@@ -156,9 +160,12 @@ export default function DeliveryDashboard() {
             <div className="text-right">
               <p className="text-sm text-gray-600">Hazır Siparişler</p>
               <p className="text-2xl font-bold text-blue-600">
-                {orders.length}
+                {orders.filter((o) => o.status !== "delivered").length}
               </p>
             </div>
+            <Button variant="outline" onClick={clearAllOrders} disabled={orders.length === 0}>
+              Tümünü Temizle
+            </Button>
             <Button variant="outline" onClick={() => router.push("/")}>
               <Home className="mr-2 h-4 w-4" />
               Ana Sayfa
@@ -176,11 +183,13 @@ export default function DeliveryDashboard() {
         ) : (
           <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
             {orders.map((order) => {
-              const assignedDriver = getDriver(order.driverId);
+              const isDelivered = order.status === "delivered";
               return (
                 <Card
                   key={order.id}
-                  className="border-2 border-blue-300 bg-blue-50/50"
+                  className={`border-2 border-blue-300 bg-blue-50/50 ${
+                    isDelivered ? "opacity-50" : ""
+                  }`}
                 >
                   <CardHeader className="pb-3">
                     <div className="flex items-start justify-between">
@@ -270,48 +279,12 @@ export default function DeliveryDashboard() {
                       </div>
                     </div>
 
-                    {/* Driver Assignment */}
-                    <div className="space-y-2">
-                      <p className="text-sm font-semibold text-gray-700">
-                        Kurye Seç:
-                      </p>
-                      <Select
-                        value={order.driverId || ""}
-                        onValueChange={(value) => assignDriver(order, value)}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Kurye seçin" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {drivers
-                            .filter((d) => d.active)
-                            .map((driver) => (
-                              <SelectItem key={driver.id} value={driver.id}>
-                                {driver.name} - {driver.vehicleType} (
-                                {driver.currentDeliveries} sipariş)
-                              </SelectItem>
-                            ))}
-                        </SelectContent>
-                      </Select>
-
-                      {assignedDriver && (
-                        <div className="rounded bg-green-50 p-2 text-sm">
-                          <p className="font-semibold text-green-700">
-                            Kurye: {assignedDriver.name}
-                          </p>
-                          <p className="text-green-600">
-                            Tel: {assignedDriver.phone}
-                          </p>
-                        </div>
-                      )}
-                    </div>
-
                     {/* Actions */}
                     <Button
                       className="w-full"
                       size="lg"
                       onClick={() => markAsDelivered(order)}
-                      disabled={!order.driverId}
+                      disabled={order.status === "delivered"}
                     >
                       <CheckCircle className="mr-2 h-5 w-5" />
                       Teslim Edildi
