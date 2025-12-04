@@ -1,5 +1,5 @@
 import Link from "next/link"
-import { Package, ChefHat, Truck, Menu, Settings, Users } from "lucide-react"
+import { Package, ChefHat, Truck, Menu, Users } from "lucide-react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 
 export default function Home() {
@@ -77,18 +77,6 @@ export default function Home() {
             </Card>
           </Link>
 
-          <Link href="/settings">
-            <Card className="cursor-pointer transition-all hover:scale-105 hover:shadow-xl">
-              <CardHeader>
-                <div className="mb-4 flex justify-center">
-                  <Settings className="h-16 w-16 text-purple-600" />
-                </div>
-                <CardTitle className="text-center text-2xl">Ayarlar</CardTitle>
-                <CardDescription className="text-center text-base">Settings</CardDescription>
-              </CardHeader>
-              <CardContent className="text-center text-gray-600">Kurye, müşteri ve ayar yönetimi</CardContent>
-            </Card>
-          </Link>
         </div>
 
         <div className="mt-12 text-center">
