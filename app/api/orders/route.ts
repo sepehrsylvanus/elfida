@@ -2,6 +2,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import Order from "@/models/Order";
 import { notifyNewOrder } from "@/lib/notifyNewOrder";
+import { notifyKitchenNewOrder } from "@/lib/notifyKitchenNewOrder";
 import { connectToDatabase } from "@/lib/mongodb";
 
 export async function POST(req: NextRequest) {
@@ -57,6 +58,16 @@ export async function POST(req: NextRequest) {
         items: order.items,
       });
     }
+
+    // Tüm siparişler için (delivery + pickup) mutfak ekibine ntfy bildirimi gönder
+    await notifyKitchenNewOrder({
+      orderNumber: order.orderNumber,
+      type: order.type,
+      source: order.source,
+      totalAmount: order.totalAmount,
+      items: order.items,
+      customerName: order.customerName,
+    });
 
     return NextResponse.json({ ok: true, order }, { status: 201 });
   } catch (err) {

@@ -187,12 +187,24 @@ export function sendKitchenNotification(messageId: string, text: string) {
   localStorage.setItem(STORAGE_KEYS.KITCHEN_NOTIFICATIONS, JSON.stringify(notifications))
   window.dispatchEvent(new Event("storage"))
 
-  // Browser notification if supported
+  // Browser notification if supported (local desktop)
   if ("Notification" in window && Notification.permission === "granted") {
     new Notification("Mutfak Bildirimi", {
       body: text,
       icon: "/modern-minimalist-kitchen.png",
     })
+  }
+
+  // Ayrıca backend üzerinden ntfy.sh'a mutfak mesajı gönder
+  // Hata olsa bile UI'yi bozmasın diye fire-and-forget şeklinde kullanıyoruz.
+  try {
+    fetch("/api/kitchen-notify", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ text }),
+    });
+  } catch (err) {
+    console.error("/api/kitchen-notify çağrısı başarısız:", err)
   }
 }
 

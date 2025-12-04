@@ -26,7 +26,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import type { MenuItem, OrderItem, OrderSource, Customer } from "@/lib/db";
-import { getNextOrderNumber } from "@/lib/store";
+import { getNextOrderNumber, sendKitchenNotification } from "@/lib/store";
 
 export default function OrderEntryPage() {
   const router = useRouter();
@@ -177,6 +177,10 @@ export default function OrderEntryPage() {
       }
 
       const savedOrder = data.order;
+
+      // Mutfak sayfasındaki bildirim listesine de yeni siparişi ekle
+      const kitchenText = `Yeni sipariş #${savedOrder.orderNumber} - ${orderSource.toUpperCase()} - ${priceValue} ₺`;
+      sendKitchenNotification("auto-order", kitchenText);
 
       // Reset form
       setCart([]);
